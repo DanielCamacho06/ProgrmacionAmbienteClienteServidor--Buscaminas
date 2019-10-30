@@ -9,16 +9,17 @@ import java.util.Set;
 
 public class Tablero {
     private int[][] cuadriculaMinas;
-    private int[][] perimetro;    
+    private int[][] perimetro;
     private int[][] cuadriculaBanderas;
-    private int tamañox=15;
-    private int tamañoy=15;
-    private final int numMinas = 10;
+    private int tamañox=16;
+    private int tamañoy=16;
+    private int numMinas = 15;
     private int numJugadores = 0; 
     int rotacionx[] = {-1, 0, 1, -1, 1, -1, 0, 1};
     int rotaciony[] = {-1, -1, -1, 0, 0, 1, 1, 1};
     private int salas = 0;
     private boolean partidaIniciada=false;
+    private boolean enviadoNoVivo=false;
     private Map<Integer,Tablero> partidasMultiples = new HashMap();
     private Map<Integer,String> estadoJugador = new HashMap();
     private int numPartidas=1;
@@ -33,6 +34,10 @@ public class Tablero {
         cuadriculaMinas = new int[tamañox][tamañoy];
         perimetro=new int[tamañox-2][tamañoy-2];
         tableroBanderas();
+        tableroMinas();
+    }
+    
+    public void tableroMinas(){
         for (int i = 0; i < tamañox; i++) {
             for (int j = 0; j < tamañoy; j++) {
                 //si es orilla se le da el valor 9 y si no 0
@@ -44,6 +49,7 @@ public class Tablero {
             }
         }
     }
+    
     
     public void tableroBanderas(){
         cuadriculaBanderas = new int[tamañox][tamañoy];
@@ -59,16 +65,16 @@ public class Tablero {
         } 
     }
     
-    /*public void nuevaSala(){
-        if(getSalas() == 0){
-            System.out.println("numero de salas igual a 0: " + getSalas());
-            setSalas(getSalas()+1);
-            generarMinas();
-            System.out.println("numero de salas despues de sumarle 1: " + getSalas());
+    public void tableroPerimetro(){
+        for (int i = 0; i <tamañox-2; i++) {
+            for (int j = 0; j < tamañoy-2; j++) {
+                if(cuadriculaMinas[i+1][j+1]!=9){
+                    perimetro[i][j] = obtenerValores(i+1, j+1);
+                }
+            }
         }
-    }*/
+    }
     
-    //se colocan las minas en la matriz
     
 public void generarMinas(int numPartida){
         cuadriculaMinas=partidasMultiples.get(numPartida).cuadriculaMinas;
@@ -80,29 +86,16 @@ public void generarMinas(int numPartida){
             //se verifica si es orilla
             if(!partidasMultiples.get(numPartida).esOrilla(x,y,numPartida)){
                 //se verifica si ya hay una mina en esa posicion
-                if(!partidasMultiples.get(numPartida).esMina(x,y,numPartida,1)){
+                if(!partidasMultiples.get(numPartida).esMina(x,y)){
                     cuadriculaMinas[x][y]=-1;
                     minasColocadas++;  
                 }
-            }    
-           
+            }      
         }while(minasColocadas!=partidasMultiples.get(numPartida).numMinas);
         System.out.println("Minas Colocadas");
         perimetro=partidasMultiples.get(numPartida).perimetro;
         //GENERA LOS NÚMEROS ALREDEDOR DE LA MINA
-        for (int i = 0; i < partidasMultiples.get(numPartida).tamañox-2; i++) {
-            for (int j = 0; j < partidasMultiples.get(numPartida).tamañoy-2; j++) {
-                if(cuadriculaMinas[i+1][j+1]!=9){
-                    perimetro[i][j] = obtenerValores(i+1, j+1,numPartida);
-                }
-            }
-        }
-        for (int i = 0; i < tamañox-2; i++) {
-            for (int j = 0; j < tamañoy-2; j++) {
-                System.out.print(perimetro[i][j]);          
-            }
-            System.out.println("");
-        }  
+        tableroPerimetro();
         partidasMultiples.get(numPartida).cuadriculaMinas=cuadriculaMinas;
         partidasMultiples.get(numPartida).perimetro=perimetro;
     }
@@ -118,7 +111,64 @@ public void generarMinas(int numPartida){
         }
         System.out.println("////////////////////");
     }
+    public void imprimirPerimetro(int numPartida){
+        for (int i = 0; i < partidasMultiples.get(numPartida).tamañox-2; i++) {
+            for (int j = 0; j <partidasMultiples.get(numPartida).tamañoy-2; j++) {
+                System.out.print(partidasMultiples.get(numPartida).perimetro[i][j]+"|");
+            }
+            System.out.println("");
+        }
+        System.out.println("////////////////////");
+    }
+   
     
+   
+    public int verSiHayEspacios(int numPartida){
+        int numeroEspacios = 0;
+        for (int i = 0; i < partidasMultiples.get(numPartida).tamañox; i++) {
+            for (int j = 0; j <partidasMultiples.get(numPartida).tamañoy; j++) {
+                if(cuadriculaBanderas[i][j] == 0 && cuadriculaMinas[i][j]==0){
+                    numeroEspacios++;
+                }
+            }
+        }
+        return numeroEspacios;
+    }
+   
+   
+    public String aumentarMinasTiempo(int numPartida){
+        int x;
+        int y;
+        String posicionMinaAgregada = "00:00-";
+        if(verSiHayEspacios(numPartida) > 0){
+            while(true){
+                x = generarAleatorio(partidasMultiples.get(numPartida).tamañox);
+                y = generarAleatorio(partidasMultiples.get(numPartida).tamañoy);
+                
+                if( (partidasMultiples.get(numPartida).cuadriculaMinas[x][y] == 0) 
+                    && (partidasMultiples.get(numPartida).cuadriculaBanderas[x][y] == 0) ){
+                 
+                    partidasMultiples.get(numPartida).cuadriculaMinas[x][y] = -1;
+                    if(x < 10 && x < 10){posicionMinaAgregada = "0" +  x + ":0" + y + "-TIEMPO";}
+                    if(x < 10 && y > 9){posicionMinaAgregada = "0" +  x + ":" + y + "-TIEMPO";}
+                    if(x > 9 && x < 10){posicionMinaAgregada = x + ":0" + y + "-TIEMPO";}
+                    if(x > 9 && x > 9){posicionMinaAgregada = x + ":" + y + "-TIEMPO";}
+                    partidasMultiples.get(numPartida).setNumMinas(partidasMultiples.get(numPartida).getNumMinas()+1);
+                    break;
+                }
+            }
+        }
+        return posicionMinaAgregada;
+    }
+    
+    
+    
+    public void actualizarMinasYBanderasDeJugador(int numPartida, Jugador b){
+        b.setBanderas(getNumMinas(b.getNumeroDeSalaEnLaQueEstoy()));
+    }
+   
+    
+   
     //devuelve un entero aleatorio del entre 0 y tamaño-1
     public int generarAleatorio(int tamaño){
          return (int)(Math.random()*tamaño);
@@ -138,28 +188,22 @@ public void generarMinas(int numPartida){
    
     //verifica si la posicion indicada es una orilla
     public boolean esOrilla(int x,int y,int numPartida){
-        boolean orilla=false;       
-         if(x==0 || x==tamañox-1 || y==0 || y==tamañoy-1){
-            orilla=true; 
-        }else{
-            orilla=false;
-        }
-        return orilla;
+        return x==0 || x==tamañox-1 || y==0 || y==tamañoy-1;
     }
     
     //verifica si hay una mina en la posicion especificada 
-    public boolean esMina(int x,int y,int numPartida,int m){
-        boolean mina=false;
-        if(m==1){
-        if(cuadriculaMinas[x][y]==-1){
-            mina=true;  
-        }
-        }else{
-            if(partidasMultiples.get(numPartida).cuadriculaMinas[x][y]==-1){
-                mina=true;  
-            }    
-        }
-        return mina;
+    public boolean esMina(int x,int y,int numPartida){
+        return partidasMultiples.get(numPartida).cuadriculaMinas[x][y]==-1;
+    }
+    
+    public boolean esMina(int x,int y){
+        return cuadriculaMinas[x][y]==-1;
+    }
+    public boolean esBandera(int x,int y){
+        return cuadriculaBanderas[x][y]!=0;
+    }
+    public boolean esBandera(int x,int y,int numPartida){
+        return partidasMultiples.get(numPartida).cuadriculaBanderas[x][y]!=0;
     }
   
     //devuelve la suma de el valor total de minas al rededor de la posicion indicada
@@ -171,6 +215,52 @@ public void generarMinas(int numPartida){
            }   
         }
         return total;
+    }
+    public int obtenerValores(int x,int y){
+        int total=0;
+        for (int i = 0; i < 8; i++) {
+           if(cuadriculaMinas[x+rotacionx[i]][y+rotaciony[i]]==-1){
+                total++; 
+           }   
+        }
+        return total;
+    }
+    
+    public String actualizarValoresMinaAgregada(int x,int y,int numPartida){
+        String resultado="";
+        for (int i = 0; i < 8; i++) {
+           int sumax=x+rotacionx[i];
+           int sumay=y+rotaciony[i];
+            if(cuadriculaMinas[1+sumax][1+sumay]!=9){
+                if(cuadriculaMinas[1+sumax][1+sumay]==0 && cuadriculaBanderas[1+sumax][1+sumay]==6){   
+                   resultado=concatenarValores(sumax, sumay, resultado, x, y, i);
+                }
+            }
+        }
+        actualizarPerimetro();
+        return resultado;
+    }
+    public String concatenarValores(int sumax, int sumay, String resultado,int x,int y, int i) {
+        if (sumax < 10 && sumay < 10) {
+            resultado += "0" + sumax + ":0" + sumay + "," + obtenerValores(x + rotacionx[i] + 1, y + rotaciony[i] + 1);
+        } else if (sumax < 10) {
+            resultado += "0" + sumax + ":" + sumay + "," + obtenerValores(x + rotacionx[i] + 1, y + rotaciony[i] + 1);
+        } else if (sumay < 10) {
+            resultado += sumax + ":0" + sumay + "," + obtenerValores(x + rotacionx[i] + 1, y + rotaciony[i] + 1);
+        } else {
+            resultado += sumax + ":" + sumay + "," + obtenerValores(x + rotacionx[i] + 1, y + rotaciony[i] + 1);
+        }
+        return resultado;
+    }
+    public void actualizarPerimetro(){
+        //GENERA LOS NÚMEROS ALREDEDOR DE LA MINA
+        for (int i = 0; i < tamañox-2; i++) {
+            for (int j = 0; j < tamañoy-2; j++) {
+                if(cuadriculaMinas[i+1][j+1]!=9){
+                    perimetro[i][j] = obtenerValores(i+1, j+1);
+                }
+            }
+        }
     }
     
 ////////////////////////////////
@@ -200,8 +290,9 @@ public void generarMinas(int numPartida){
          for (int a = 0;a<8;a++){
             if (cuadriculaMinas[x+1+rotacionx[a]][y+1+rotaciony[a]] == 9){
  
-            } else if ((perimetro[x+rotacionx[a]][y+rotaciony[a]] == 0) && (cuadriculaMinas[x+1+rotacionx[a]][y+1+rotaciony[a]] == 0) && (cuadriculaBanderas[x+1+rotacionx[a]][y+1+rotaciony[a]])==0){
-               // if(!ceros.contains((x+rotacionx[a])+":"+(y+rotaciony[a])) && !ceros.contains(("0"+x+rotacionx[a])+":0"+(y+rotaciony[a])) && !ceros.contains(("0"+x+rotacionx[a])+":"+(y+rotaciony[a])) && !ceros.contains((x+rotacionx[a])+":0"+(y+rotaciony[a])) ){
+            } else if ((perimetro[x+rotacionx[a]][y+rotaciony[a]] == 0) && (cuadriculaMinas[x+1+rotacionx[a]][y+1+rotaciony[a]] == 0) 
+                    && (cuadriculaBanderas[x+1+rotacionx[a]][y+1+rotaciony[a]])==0){
+         
                     int sumax=(x+rotacionx[a]);
                     int sumay=(y+rotaciony[a]);
                     cuadriculaBanderas[sumax+1][sumay+1]=6;
@@ -215,23 +306,24 @@ public void generarMinas(int numPartida){
                         ceros+=sumax+":"+sumay+","+perimetro[x+rotacionx[a]][y+rotaciony[a]];
                     }
                    procesarCeros(x+rotacionx[a], y+rotaciony[a],"",numPartida);  
-               //}
-            } else if ((perimetro[x+rotacionx[a]][y+rotaciony[a]] != 0) && (cuadriculaMinas[x+1+rotacionx[a]][y+1+rotaciony[a]] == 0) && (cuadriculaBanderas[x+1+rotacionx[a]][y+1+rotaciony[a]])==0){
-               //if(!numeros.contains((x+rotacionx[a])+":"+(y+rotaciony[a])) && !numeros.contains(("0"+x+rotacionx[a])+":0"+(y+rotaciony[a])) && !numeros.contains(("0"+x+rotacionx[a])+":"+(y+rotaciony[a])) && !numeros.contains((x+rotacionx[a])+":0"+(y+rotaciony[a]))){
-                    int sumax=(x+rotacionx[a]);
-                    int sumay=(y+rotaciony[a]);
-                    cuadriculaBanderas[sumax+1][sumay+1]=6;
-                    if(sumax<10 && sumay<10){
-                     numeros+="0"+sumax+":0"+sumay+","+perimetro[x+rotacionx[a]][y+rotaciony[a]];    
-                    }else if(sumax<10){
-                     numeros+="0"+sumax+":"+sumay+","+perimetro[x+rotacionx[a]][y+rotaciony[a]];    
-                    }else if(sumay<10){
-                     numeros+=sumax+":0"+sumay+","+perimetro[x+rotacionx[a]][y+rotaciony[a]];       
-                    }else if(sumax>9 && sumay>9){
-                      numeros+=sumax+":"+sumay+","+perimetro[x+rotacionx[a]][y+rotaciony[a]];
-                    }
-               //}
-            }
+               
+             } else if ((perimetro[x + rotacionx[a]][y + rotaciony[a]] != 0) && (cuadriculaMinas[x + 1 + rotacionx[a]][y + 1 + rotaciony[a]] == 0)
+                     && (cuadriculaBanderas[x + 1 + rotacionx[a]][y + 1 + rotaciony[a]]) == 0) {
+
+                 int sumax = (x + rotacionx[a]);
+                 int sumay = (y + rotaciony[a]);
+                 cuadriculaBanderas[sumax + 1][sumay + 1] = 6;
+                 if (sumax < 10 && sumay < 10) {
+                     numeros += "0" + sumax + ":0" + sumay + "," + perimetro[x + rotacionx[a]][y + rotaciony[a]];
+                 } else if (sumax < 10) {
+                     numeros += "0" + sumax + ":" + sumay + "," + perimetro[x + rotacionx[a]][y + rotaciony[a]];
+                 } else if (sumay < 10) {
+                     numeros += sumax + ":0" + sumay + "," + perimetro[x + rotacionx[a]][y + rotaciony[a]];
+                 } else if (sumax > 9 && sumay > 9) {
+                     numeros += sumax + ":" + sumay + "," + perimetro[x + rotacionx[a]][y + rotaciony[a]];
+                 }
+
+             }
         }
         partidasMultiples.get(numPartida).ceros=ceros;
         partidasMultiples.get(numPartida).numeros=numeros;
@@ -250,16 +342,10 @@ public void generarMinas(int numPartida){
         }catch(Exception e){
            e.printStackTrace();
         }
-        
-        if(minasEncontradas == partidasMultiples.get(numPartida).numMinas){
-            return true;
-        }else{
-            return false;
-        }
+        return minasEncontradas == partidasMultiples.get(numPartida).numMinas;    
     }
     
     public boolean finalizarPartida_JugadoresPierden(int numPartida){
-        boolean estado=false;
         int contadorMuertos=0,contadorNumeroJugadores=0;
         try{
             Map<Integer,String> map=partidasMultiples.get(numPartidas).estadoJugador;
@@ -274,19 +360,12 @@ public void generarMinas(int numPartida){
         }catch(Exception e){
            e.printStackTrace();
         }
-        if(contadorMuertos==contadorNumeroJugadores){
-            estado=true;
-        }
-        return estado;
+        return contadorMuertos==contadorNumeroJugadores;   
     }
     
     public boolean validarTamañoYMinas(int numPartida){
         int tamañomatriz = partidasMultiples.get(numPartida).tamañox * partidasMultiples.get(numPartida).tamañoy;
-        if(partidasMultiples.get(numPartida).numMinas > tamañomatriz){
-            return false;
-        }else{
-            return true;
-        }
+        return partidasMultiples.get(numPartida).numMinas > tamañomatriz; 
     }
 
     
@@ -298,6 +377,9 @@ public void generarMinas(int numPartida){
     }
     public int getNumMinas(int numPartida) {
         return partidasMultiples.get(numPartida).numMinas;
+    }
+    public int getNumMinas() {
+        return numMinas;
     }
     public void setCuadriculaBanderas(int x, int y, int numJugador,int numPartida) {
         partidasMultiples.get(numPartida).cuadriculaBanderas[x][y] = numJugador;
@@ -319,6 +401,10 @@ public void generarMinas(int numPartida){
     }
     public int getSalas() {
         return salas;
+    }
+    
+    public void setNumMinas(int numMinas){
+        this.numMinas = numMinas;
     }
     
 /////////////////////////PARTIDAS MULTIPLES
@@ -370,6 +456,7 @@ public void generarMinas(int numPartida){
     }
     public void salioJugadorDisminuirNumeroJugador(int numPartida,int numJugador){
        partidasMultiples.get(numPartidas).tamañoJugadores.remove(numJugador);
+       partidasMultiples.get(numPartidas).numJugadores--;
     }
     
     public boolean iniciarPartida(int numPartida){
@@ -475,6 +562,15 @@ public void generarMinas(int numPartida){
         }
         return resultado;
     }
+
+    public boolean getEnviadoNoVivo(int numPartida) {
+        return partidasMultiples.get(numPartida).enviadoNoVivo;
+    }
+
+    public void setEnviadoNoVivo(int numPartida,boolean enviadoNoVivo) {
+       partidasMultiples.get(numPartida).enviadoNoVivo = enviadoNoVivo;
+    }
+    
     
     
 }//FIN CLASS
